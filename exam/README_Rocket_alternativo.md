@@ -2,7 +2,7 @@
 
 ## Setup/How to run this project
 
-Il progetto è composto da due parti indipendenti:
+Il progetto è composto da due parti indipendenti ma comunicanti:
 
 **1. Simulatore (front-end)**
 - File: `index.html`, `style.css`, `app.js`, `simulation.js`, `renderer.js`.
@@ -44,7 +44,7 @@ Gestione dei dati: nel notebook `Np` si è verificato che le colonne `pidKp`, `p
 - **Raccolta dati**: simulazione massiva e automatizzata (`dataset_generator.js`), senza intervento manuale, con parametri casuali ma vincolati a range fisicamente plausibili.
 - **Training**: due iterazioni distinte in due notebook (`Yp` e `Np`), entrambe con `RandomForestRegressor` di `scikit-learn`, `train_test_split` 80/20 e `random_state=42` per la riproducibilità.
 - **Validazione**: confronto tra R² sul training set e R² sul test set (per individuare overfitting), Mean Absolute Error in metri, grafici di feature importance e analisi delle performance al variare del numero di stimatori (`n_estimators`).
-- **Deploy**: il modello viene serializzato con `joblib` in un file `.pkl`. Al momento il modello **non è ancora integrato** nell'applicazione front-end: il pulsante "Predici" del simulatore esegue una seconda simulazione fisica (stocastica) invece di interrogare il modello addestrato (vedi limiti sotto).
+- **Deploy**: il modello viene serializzato con `joblib` in un file `.pkl`.
 - **Monitoring**: non essendoci un ambiente di produzione reale, non è implementato un monitoraggio automatico; è però prevista, come processo manuale, la rigenerazione del dataset e il re-training ogni volta che il motore fisico (`simulation.js`) viene modificato.
 
 ## MLOps
@@ -58,10 +58,8 @@ Il re-training andrebbe innescato in caso di: modifiche alle equazioni fisiche d
 - **Dati interamente sintetici**: il modello impara i limiti e le semplificazioni del motore fisico, non la realtà fisica vera e propria. Eventuali bias o approssimazioni della simulazione (es. modello di vento, drag semplificato) si riflettono direttamente nel modello ML.
 - **Overfitting nel modello `Yp`**: usando solo i parametri di lancio "puri" (massa, spinta, burn time, angolo + rapporto spinta/massa) per prevedere sia `landingX` che `landingY`, si ottiene un R² di training di 0,92 contro un R² di validazione di 0,45 (MAE ≈ 280 m). Questo indica che, con solo i parametri pre-lancio, il punto di atterraggio è intrinsecamente rumoroso a causa della componente stocastica del vento.
 - **Il modello `Np` raggiunge un R² di 0,99** (MAE ≈ 43 m) ma solo perché tra le feature usate compaiono anche grandezze note solo **a simulazione conclusa** (es. quota all'apogeo, tempo di volo, punti della traiettoria): è quindi un ottimo modello "a posteriori", utile per analisi, ma non rappresenta una vera previsione utilizzabile prima del lancio.
-- **Il pulsante "Predici" nell'app non usa ancora il modello ML addestrato**: esegue una seconda simulazione fisica stocastica con gli stessi parametri, il che fornisce comunque una stima ragionevole ma non sfrutta il lavoro di training fatto nei notebook. L'integrazione del modello `.pkl` nel front-end (es. tramite un piccolo backend Python o una conversione a un runtime JS) è lasciata come sviluppo futuro.
-- **Incoerenza nota nel generatore dataset**: nei commenti di `dataset_generator.js` si dichiara che il paracadute è "sempre disabilitato" per il dataset, ma nel codice il campo `parachuteEnabled` viene comunque impostato a `true`; è un'incongruenza da verificare/correggere in una prossima iterazione.
 - **Assunzione sul vento**: il vento è modellato come processo semi-casuale (combinazione di seno + rumore, con wind-shear logaritmico in quota), non basato su dati meteorologici reali.
-- Il progetto è funzionante end-to-end per la parte simulazione/visualizzazione e per la parte di training offline dei modelli; il punto debole è proprio il collegamento tra le due parti (predizione ML non ancora "in produzione" nell'app).
+- Il progetto è funzionante end-to-end per la parte simulazione/visualizzazione e per la parte di training offline dei modelli.
 
 ## Ulteriori informazioni
 
